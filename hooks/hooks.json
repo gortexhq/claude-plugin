@@ -1,0 +1,54 @@
+{
+  "description": "Gortex graph-aware hooks: PreToolUse routing, PreCompact orientation, post-task diagnostics, SessionStart cold briefing.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Task|Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks-handlers/gortex-hook.sh\"",
+            "timeout": 3000,
+            "statusMessage": "Enriching with Gortex graph context..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks-handlers/gortex-hook.sh\"",
+            "timeout": 3000,
+            "statusMessage": "Injecting Gortex orientation snapshot..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks-handlers/gortex-hook.sh\"",
+            "timeout": 5000,
+            "statusMessage": "Running Gortex post-task diagnostics..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks-handlers/gortex-hook.sh\"",
+            "timeout": 3000,
+            "statusMessage": "Loading Gortex graph orientation..."
+          }
+        ]
+      }
+    ]
+  }
+}

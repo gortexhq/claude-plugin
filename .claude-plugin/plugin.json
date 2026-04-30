@@ -1,0 +1,10 @@
+{
+  "author": {
+    "email": "me@zzet.org",
+    "name": "Andrey Kumanyaev"
+  },
+  "description": "Code intelligence engine — daemon-backed knowledge graph with 52 MCP tools for navigation, refactoring, contracts, impact analysis, and search across 92 languages.",
+  "homepage": "https://gortex.dev",
+  "name": "gortex",
+  "version": "a7f7e8c"
+}

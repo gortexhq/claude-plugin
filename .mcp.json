@@ -1,0 +1,6 @@
+{
+  "gortex": {
+    "command": "gortex",
+    "args": ["mcp", "--proxy"]
+  }
+}
