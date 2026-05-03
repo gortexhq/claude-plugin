@@ -9,14 +9,16 @@ description: "Use when the user wants to rename, extract, split, move, or restru
 ```
 1. search_symbols({query: "X"})                                     -> Find the symbol ID
 2. explain_change_impact({ids: "<id>"})                             -> Map blast radius
-3. verify_change({id: "<id>", new_signature: "..."})                -> Catch contract violations in callers + implementors
-4. get_editing_context({path: "<file>"})                            -> See all symbols and relationships
-5. find_usages({id: "<id>"})                                        -> Every reference to change
-6. get_edit_plan({ids: ["<id1>", "<id2>"]})                         -> Dependency-ordered file list
-7. batch_edit({edits: [...]})                                       -> Apply edits in order, re-indexing between steps
-8. check_guards({ids: [...]})                                       -> Post-edit: team conventions from .gortex.yaml
-9. get_test_targets({ids: [...]})                                   -> Tests to re-run (cross-repo aware)
-10. detect_changes({scope: "all"})                                  -> Verify scope; diff_context for review
+3. analyze({kind: "ownership", path_prefix: "<dir>/"})              -> Who should review (pinging policy)
+4. analyze({kind: "coverage_gaps", path_prefix: "<dir>/"})          -> Where is the refactor risky (poor coverage)
+5. verify_change({id: "<id>", new_signature: "..."})                -> Catch contract violations in callers + implementors
+6. get_editing_context({path: "<file>"})                            -> See all symbols and relationships
+7. find_usages({id: "<id>"})                                        -> Every reference to change
+8. get_edit_plan({ids: ["<id1>", "<id2>"]})                         -> Dependency-ordered file list
+9. batch_edit({edits: [...]})                                       -> Apply edits in order, re-indexing between steps
+10. check_guards({ids: [...]})                                      -> Post-edit: team conventions from .gortex.yaml
+11. get_test_targets({ids: [...]})                                  -> Tests to re-run (cross-repo aware)
+12. detect_changes({scope: "all"})                                  -> Verify scope; diff_context for review
 ```
 
 ## Rename Symbol

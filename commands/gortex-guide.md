@@ -82,9 +82,33 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 ### Code Quality
 | Tool | What it gives you |
 |------|-------------------|
-| analyze | Unified graph analysis. kind=dead_code, hotspots, cycles, or would_create_cycle |
+| analyze | Unified graph analysis. Supported kinds: dead_code, hotspots, cycles, would_create_cycle, todos, blame, coverage, stale_code, ownership, coverage_gaps, coverage_summary, stale_flags, releases, cgo_users, wasm_users, orphan_tables, unreferenced_tables, channel_ops, goroutine_spawns, field_writers, annotation_users, config_readers, event_emitters, error_surface |
+| analyze kind=dead_code | Symbols with zero incoming edges (excludes entry points, tests, exports) |
+| analyze kind=hotspots | Over-coupled symbols ranked by fan-in, fan-out, and community crossings |
+| analyze kind=cycles | Tarjan's SCC with severity classification |
+| analyze kind=would_create_cycle | Pre-flight check before adding a new dependency |
+| analyze kind=todos | KindTodo nodes; filter by tag/assignee/ticket |
+| analyze kind=blame | Stamps meta.last_authored on every blame-eligible node |
+| analyze kind=coverage | Stamps meta.coverage_pct on executable symbols from cover.out |
+| analyze kind=stale_code | Symbols whose last-author timestamp is older than `older_than` days |
+| analyze kind=ownership | Per-author rollup with symbol/file counts and oldest/newest TS |
+| analyze kind=coverage_gaps | Symbols inside [min_pct, max_pct) — undertested code |
+| analyze kind=coverage_summary | Per-directory coverage rollup (avg, covered, partial, uncovered) |
+| analyze kind=stale_flags | Feature flags whose every toggling caller is older than `older_than` days |
+| analyze kind=releases | Stamps meta.added_in on file nodes from git tags |
+| analyze kind=cgo_users / wasm_users | Files that import C / use #[wasm_bindgen] |
+| analyze kind=orphan_tables | Tables queried (EdgeQueries) but missing a migration (EdgeProvides) |
+| analyze kind=unreferenced_tables | Tables provided by a migration but with zero EdgeQueries |
+| analyze kind=channel_ops | Channels grouped by EdgeSends / EdgeRecvs — producer/consumer mismatches |
+| analyze kind=goroutine_spawns | EdgeSpawns grouped by spawned target + mode (goroutine/async/promise) |
+| analyze kind=field_writers | Mutability hotspots — fields ranked by EdgeWrites; pass `id` for one field |
+| analyze kind=annotation_users | EdgeAnnotated rollup; pass `id` or `name` to scope (e.g. @Deprecated) |
+| analyze kind=config_readers | config_key nodes grouped by EdgeReadsConfig; `name` filter |
+| analyze kind=event_emitters | Event/log/metric emit sites grouped by EdgeEmits; `level`, `name` filters |
+| analyze kind=error_surface | Function/method nodes with their EdgeThrows targets — refactor blast radius |
 | index_health | Health score, parse failures, stale files, language coverage |
 | get_symbol_history | Symbols modified this session with counts; flags churning (3+ edits) |
+| gortex enrich blame\|coverage\|releases\|all (CLI) | Bulk-stamp the graph with the metadata that stale_*/coverage_*/ownership/releases analyzers need |
 
 ### Code Generation
 | Tool | What it gives you |
@@ -120,5 +144,12 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 
 ## Graph Schema
 
-**Node kinds:** file, function, method, type, interface, variable, import, package, contract
-**Edge kinds:** calls, imports, defines, implements, extends, references, member_of, instantiates, provides, consumes
+**Node kinds:**
+- Code structure: file, package, function, method, type, interface, field, variable, constant, import, contract, param, closure, enum_member, generic_param
+- Coverage extensions: module (ecosystem deps), table / column (db schema), config_key (env/viper/cli), flag (feature flags), event (logs/metrics/spans), migration, fixture (test data), todo (TODO/FIXME comments), team (CODEOWNERS), license, release (tag boundaries)
+
+**Edge kinds:**
+- Calls / structure: calls, imports, defines, implements, extends, references, member_of, instantiates, provides, consumes, composes, aliases, typed_as, returns, captures, param_of
+- Concurrency: spawns (goroutine/async/promise), sends / recvs (channels)
+- Mutation: reads / writes (fields), reads_config / writes_config
+- Metadata: annotated (decorators), emits (events), throws (errors), queries (SQL), reads_col / writes_col, toggles_flag, depends_on_module, matches (fixtures), generated_by, tests (test → tested symbol), covered_by, owns (CODEOWNERS), authored, licensed_as
