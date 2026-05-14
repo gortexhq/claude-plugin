@@ -14,8 +14,10 @@
 9. get_test_targets({ids: ["<id1>", "<id2>"]})                      -> Tests to re-run (includes cross-repo)
 10. analyze({kind: "coverage_gaps", path_prefix: "<dir>/"})         -> Undertested code in the change area — extra-risky refactor zones
 11. check_guards({ids: ["<id1>"]})                                  -> Project guard rules from .gortex.yaml
-12. detect_changes({scope: "staged"})                               -> Pre-commit scope check
-13. diff_context({scope: "staged"})                                 -> Graph-enriched diff for review
+12. flow_between({source_id, sink_id})                              -> Ranked dataflow paths between two symbols — catches consumers reached through helpers that get_dependents misses
+13. taint_paths({source_pattern, sink_pattern})                     -> Pattern-driven dataflow sweep — every flow from a matching source to a matching sink
+14. detect_changes({scope: "staged"})                               -> Pre-commit scope check
+15. diff_context({scope: "staged"})                                 -> Graph-enriched diff for review
 ```
 
 ## Understanding Output

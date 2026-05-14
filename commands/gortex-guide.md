@@ -51,6 +51,8 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 | find_import_path | Correct import path for a symbol in a target file |
 | explain_change_impact | Risk-tiered blast radius with affected processes/communities |
 | edit_symbol | Edit symbol source by ID — no Read needed, resolves file + lines |
+| edit_file | String-replace any file (markdown / config / spec / source) by absolute or repo-relative path. No pre-Read required. Atomic write (temp+rename), auto-reindex. `replace_all` for many occurrences; `dry_run` to preview. |
+| write_file | Create or overwrite any file by absolute or repo-relative path. No pre-Read required. Atomic write, creates parent dirs, auto-reindex. `dry_run` to preview. |
 | rename_symbol | Coordinated rename: generates edits for definition + all references |
 | get_recent_changes | Files/symbols changed since timestamp (watch mode) |
 
@@ -79,10 +81,33 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 | verify_change | Checks proposed signature changes against all callers and interface implementors |
 | check_guards | Evaluates project guard rules (.gortex.yaml) against changed symbols |
 
+### Dataflow (CPG-lite)
+| Tool | What it gives you |
+|------|-------------------|
+| flow_between | Ranked dataflow paths between two symbol IDs. Walks `value_flow` (intra-procedural) ∪ `arg_of` (caller arg → callee param) ∪ `returns_to` (callee → assignment). Pass `max_depth` (default 8) and `max_paths` (default 10). |
+| taint_paths | Pattern-driven dataflow sweep — every flow from a matching source to a matching sink. Patterns: bare token = name substring; `exact:Foo`; `path:dir/`; `kind:method` (clauses combine with AND). Sinks expand functions to their params automatically. |
+
+### Structural Code Search
+| Tool | What it gives you |
+|------|-------------------|
+| search_ast (detector mode) | Bundled cross-language anti-pattern rules. Pass `detector: "<name>"` for one of: `error-not-wrapped` (Go), `sql-string-concat` (Go/Python/JS/TS/Ruby), `weak-crypto` (Go/Python), `panic-in-library` (Go), `goroutine-without-recover` (Go), `http-client-no-timeout` (Go), `hardcoded-secret` (Go/Python/JS/TS/Ruby), `empty-catch` (Java/JS/TS/Python), `java-string-equality` (Java), `python-mutable-default-arg` (Python). Each match returns the enclosing `symbol_id` so you can chain into `find_usages` / `apply_code_action`. Test files excluded by default. |
+| search_ast (raw pattern) | Tree-sitter S-expression queries. Pass `pattern: "..."` + `language: "..."`. Capture nodes with `@name`, anchor with `@match`, predicates `(#eq? @x "literal")` / `(#match? @x "regex")`. Example: `((call_expression function: (identifier) @fn) @match (#eq? @fn "panic"))` finds every direct `panic()` call. |
+| search_ast (graph filters) | Combine the structural match with graph predicates ast-grep can't express: `path_prefix` / `repo` / `project` / `ref` / `min_fan_in_of_enclosing_func`. The last narrows results to load-bearing code by dropping matches in functions with few callers. |
+
+### Diagnostics & Code Actions
+| Tool | What it gives you |
+|------|-------------------|
+| subscribe_diagnostics | Opt the session into push `notifications/diagnostics` from every running language server. Initial state replays as `initial_replay: true`; thereafter only delta-changed files are pushed (sha256-suppressed). `min_severity` (1=error, 2=warning, 3=info, 4=hint) and `path_prefix` filters scope what reaches the session. Eliminates the poll-after-edit loop. |
+| unsubscribe_diagnostics | Opt out of push notifications. Idempotent; fires automatically on session disconnect, so explicit calls are only needed when narrowing scope. |
+| get_diagnostics | Latest stored `publishDiagnostics` for a file (the polling form). Pass `wait: true` + `timeout_ms` to block on the first publish — useful right after `didOpen` when no event has fired yet. |
+| get_code_actions | LSP code actions for a file (and optional range). Returns the menu of fixes / refactors / source actions the language server offers. |
+| apply_code_action | Apply a single CodeAction → WorkspaceEdit on disk. Atomic temp+rename; supports both legacy `changes` and modern `documentChanges` shapes; UTF-16 column math correctly maps LSP positions onto the byte offset in the source. |
+| fix_all_in_file | One-shot `source.fixAll` over an entire file. Bundles every server-suggested fix in a single round-trip. |
+
 ### Code Quality
 | Tool | What it gives you |
 |------|-------------------|
-| analyze | Unified graph analysis. Supported kinds: dead_code, hotspots, cycles, would_create_cycle, todos, blame, coverage, stale_code, ownership, coverage_gaps, coverage_summary, stale_flags, releases, cgo_users, wasm_users, orphan_tables, unreferenced_tables, channel_ops, goroutine_spawns, field_writers, annotation_users, config_readers, event_emitters, error_surface |
+| analyze | Unified graph analysis. Supported kinds: dead_code, hotspots, cycles, would_create_cycle, todos, blame, coverage, stale_code, ownership, coverage_gaps, coverage_summary, stale_flags, releases, cgo_users, wasm_users, orphan_tables, unreferenced_tables, channel_ops, goroutine_spawns, field_writers, annotation_users, config_readers, event_emitters, error_surface, external_calls, routes, models, components, k8s_resources, images, kustomize |
 | analyze kind=dead_code | Symbols with zero incoming edges (excludes entry points, tests, exports) |
 | analyze kind=hotspots | Over-coupled symbols ranked by fan-in, fan-out, and community crossings |
 | analyze kind=cycles | Tarjan's SCC with severity classification |
@@ -106,6 +131,13 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 | analyze kind=config_readers | config_key nodes grouped by EdgeReadsConfig; `name` filter |
 | analyze kind=event_emitters | Event/log/metric emit sites grouped by EdgeEmits; `level`, `name` filters |
 | analyze kind=error_surface | Function/method nodes with their EdgeThrows targets — refactor blast radius |
+| analyze kind=external_calls | Stdlib / module-cache attribution — KindModule rollup of call/symbol counts; pass `id` for per-symbol detail, `module_kind` to filter stdlib vs module_cache |
+| analyze kind=routes | Handler↔route pairs from the EdgeHandlesRoute layer (HTTP/gRPC/WS/GraphQL/topic); `method` / `path` / `type` filters |
+| analyze kind=models | Model→table edges from EdgeModelsTable across gorm / SQLAlchemy / Django / ActiveRecord / JPA / TypeORM / Ecto; `orm` / `table` / `model` filters |
+| analyze kind=components | Parent↔child fan-in/out from EdgeRendersChild (JSX/TSX + Phoenix HEEx); pass `id` for per-component child list |
+| analyze kind=k8s_resources | KindResource fan-out (depends_on / configures / mounts / exposes / uses_env); `k8s_kind` / `namespace` / `name` filters |
+| analyze kind=images | Container images (Dockerfile FROM target or K8s `container.image`) with consumer count; `role` (base/stage) / `ref` / `tag` filters |
+| analyze kind=kustomize | KindKustomization overlay tree with base / resource fan-out; `dir` filter |
 | index_health | Health score, parse failures, stale files, language coverage |
 | get_symbol_history | Symbols modified this session with counts; flags churning (3+ edits) |
 | gortex enrich blame\|coverage\|releases\|all (CLI) | Bulk-stamp the graph with the metadata that stale_*/coverage_*/ownership/releases analyzers need |
@@ -152,4 +184,5 @@ Quick reference for all Gortex MCP tools and the knowledge graph schema.
 - Calls / structure: calls, imports, defines, implements, extends, references, member_of, instantiates, provides, consumes, composes, aliases, typed_as, returns, captures, param_of
 - Concurrency: spawns (goroutine/async/promise), sends / recvs (channels)
 - Mutation: reads / writes (fields), reads_config / writes_config
+- Dataflow (CPG-lite, `flow_between` / `taint_paths`): value_flow (intra-procedural assignment / return / range), arg_of (caller arg → callee param), returns_to (callee → assignment LHS)
 - Metadata: annotated (decorators), emits (events), throws (errors), queries (SQL), reads_col / writes_col, toggles_flag, depends_on_module, matches (fixtures), generated_by, tests (test → tested symbol), covered_by, owns (CODEOWNERS), authored, licensed_as

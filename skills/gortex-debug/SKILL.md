@@ -21,7 +21,9 @@ description: "Use when the user is debugging a bug, tracing an error, or asking 
 | Symptom                 | Gortex Approach |
 | ----------------------- | --------------- |
 | Error message           | search_symbols for error-related names -> get_callers on throw sites; analyze kind=error_surface to map who throws what |
-| Wrong return value      | get_call_chain on the function -> trace callees for data flow |
+| Wrong return value      | get_call_chain on the function -> trace callees for data flow; flow_between({source_id, sink_id}) when you suspect the wrong value flows through helpers |
+| Trace bad value to its origin | flow_between({source_id: producer, sink_id: consumer}) — ranked dataflow paths over value_flow / arg_of / returns_to. Faster than reading source for "where did this value come from?" |
+| Find every taint into a sink | taint_paths({source_pattern: "name:Source", sink_pattern: "name:Sink"}) — every flow from any matching source to any matching sink (functions auto-expand to their params on the sink side) |
 | Intermittent failure    | get_editing_context -> look for external calls, async deps; analyze kind=goroutine_spawns to find unowned background work |
 | Channel deadlock        | analyze kind=channel_ops -> channels with sends but no receivers (or vice versa) |
 | Performance issue       | find_usages -> find symbols with many callers (hot paths) |
@@ -33,3 +35,6 @@ description: "Use when the user is debugging a bug, tracing an error, or asking 
 | Event/log volume spike  | analyze kind=event_emitters with level=error -> find every site that logs an error |
 | Mutation race suspicion | analyze kind=field_writers id=<field> -> every function that writes the contended field |
 | Annotation drift        | analyze kind=annotation_users name=Deprecated -> every site still using a deprecated API |
+| Env var read/write mismatch | find_usages on cfg::env::<NAME> -> Resources/Dockerfile stages declaring it (EdgeUsesEnv) plus code-side os.Getenv consumers via the shared config_key node |
+| K8s manifest blast radius | analyze kind=k8s_resources k8s_kind=ConfigMap -> orphan ConfigMaps. find_usages on a ConfigMap Resource ID surfaces every workload that envFroms or mounts it |
+| Container image audit   | analyze kind=images role=base -> every external image and how many Dockerfile stages / K8s Resources pull it. Filter by tag=latest to find the unpinned ones |
