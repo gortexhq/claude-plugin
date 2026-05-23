@@ -45,4 +45,4 @@ spawns a one-shot MCP server per session — same tools, slower cold start.
 
 - Homepage: https://gortex.dev
 - Source:   https://github.com/zzet/gortex
-- License:  https://github.com/zzet/gortex/blob/main/LICENSE.md (source-available; free under defined thresholds)
+- License:  https://github.com/zzet/gortex/blob/main/LICENSE.md (Apache 2.0)

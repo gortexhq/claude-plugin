@@ -1,9 +1,5 @@
-Gortex is licensed under the terms in LICENSE.md at the root of the
-upstream repository: https://github.com/zzet/gortex/blob/main/LICENSE.md
+Gortex is licensed under the Apache License, Version 2.0. The full
+license text lives in LICENSE.md at the root of the upstream repository:
+https://github.com/zzet/gortex/blob/main/LICENSE.md
 
-Source-available under PolyForm Small Business 1.0.0 with a
-contributor-perks addendum. Free for organisations under defined
-size and revenue thresholds; commercial license available for
-larger deployments.
-
-Copyright (c) 2024-2026 Andrey Kumanyaev <me@zzet.org>
+Copyright 2024-2026 Andrey Kumanyaev <me@zzet.org>
